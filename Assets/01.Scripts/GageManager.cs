@@ -54,8 +54,8 @@ public class GageManager : MonoBehaviour
 		if (LoadingGage.fillAmount >= 1)
 		{
 			CompleteLoad = true;
-			KeyText.color = Color.white;
-			KeyText.text = "Complete Loading";
+			KeyText.color = Color.green;
+			KeyText.text = "Complete";
 			if (DecreaseCoroutine != null)
 			{
 				StopCoroutine(DecreaseCoroutine);
@@ -115,7 +115,8 @@ public class GageManager : MonoBehaviour
 		if(IncreaseCoroutine != null) StopCoroutine(IncreaseCoroutine);
 		while (true)
 		{
-			yield return new WaitForSeconds(0.1f); // 0.1초마다 감소
+			//yield return new WaitForSeconds(0.1f); // 0.1초마다 감소
+			yield return null;
 			LoadingGage.fillAmount -= decreaseSpeed * Time.deltaTime;
 		}
 	}
