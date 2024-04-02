@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,10 +12,11 @@ public class GageManager : MonoBehaviour
 	public float decreaseSpeed = 0.1f;
 	public float fillSpeed = 0.1f;
 	private bool CompleteLoad = false;
+	private float lastInputTime;
 
 	[Header("Input Keys")]
-	public KeyCode[] NeedKeyArray;
-    public KeyCode NeedToPushKey;
+	public KeyCode[] CanPushKeyArray;
+    public KeyCode PushKey;
 
 	#endregion
 
@@ -22,11 +24,14 @@ public class GageManager : MonoBehaviour
 
 	[Header("Objects")]
 	public Image LoadingGage;
+	public TMP_Text KeyText;
+	public ParticleSystem PushParticle;
 	//public Image NeedKeyImage;
 
 	[Header("Sprites")]
 	//public Sprite[] KeyImages;
 
+	private Coroutine IncreaseCoroutine;
 	private Coroutine DecreaseCoroutine;
 	#endregion
 
@@ -49,40 +54,65 @@ public class GageManager : MonoBehaviour
 		if (LoadingGage.fillAmount >= 1)
 		{
 			CompleteLoad = true;
-			if(DecreaseCoroutine != null)
+			KeyText.color = Color.white;
+			KeyText.text = "Complete Loading";
+			if (DecreaseCoroutine != null)
 			{
 				StopCoroutine(DecreaseCoroutine);
 				DecreaseCoroutine = null;
 			}
 		}
-		if(Input.GetKeyDown(NeedToPushKey) && CompleteLoad == false)
+
+		if(CompleteLoad == false)	
 		{
-			IncreaseGage();
-		}
+			if (Input.GetKeyDown(PushKey))
+			{
+				lastInputTime = Time.time;
+				IncreaseGage();
+			}
+
+			if (Time.time - lastInputTime > 1f) // 플레이어가 1초 동안 입력을 하지 않았을 때
+			{
+				if (DecreaseCoroutine == null)
+				{
+					DecreaseCoroutine = StartCoroutine(DecreaseGage()); //게이지 감소 시작
+				}
+			}
+			else //입력을 했을 경우
+			{
+				if (DecreaseCoroutine != null)
+				{
+					StopCoroutine(DecreaseCoroutine); //게이지 감소 중지
+					DecreaseCoroutine = null;
+				}
+			}
+		}		
 	}
 
 	#region Methods
 
 	private void SettingRandomKey()
 	{
-		int randKey = Random.Range(0, NeedKeyArray.Length);
-		NeedToPushKey = NeedKeyArray[randKey];
+		int randKey = Random.Range(0, CanPushKeyArray.Length);
+		PushKey = CanPushKeyArray[randKey];
+		KeyText.text = PushKey.ToString();
 	}
 
 	private void IncreaseGage()
 	{
 		if(DecreaseCoroutine != null) StopCoroutine(DecreaseCoroutine); // 이미지 증가 중에는 감소를 중단
 		DecreaseCoroutine = StartCoroutine(DecreaseGage());
-
+		PushParticle.Play();
 		float targetFillAmount = LoadingGage.fillAmount + 0.05f;
 		targetFillAmount = Mathf.Clamp01(targetFillAmount); // 0과 1 사이로 제한
-		StartCoroutine(ChangeFillAmountSmoothly(targetFillAmount));
+		IncreaseCoroutine = StartCoroutine(ChangeFillAmountSmoothly(targetFillAmount));
 
 		SettingRandomKey();
 	}
 
 	private IEnumerator DecreaseGage()
 	{
+		if(IncreaseCoroutine != null) StopCoroutine(IncreaseCoroutine);
 		while (true)
 		{
 			yield return new WaitForSeconds(0.1f); // 0.1초마다 감소
